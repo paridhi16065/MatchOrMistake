@@ -2,8 +2,10 @@ import React, { useState, useCallback, useEffect } from 'react';
 import Header from './components/Header';
 import ImageUpload from './components/ImageUpload';
 import ResultCard from './components/ResultCard';
-import { AnalysisResult, AnalysisState } from './types';
+import HistoryList from './components/HistoryList';
+import { AnalysisResult, AnalysisState, HistoryItem } from './types';
 import { analyzeProfile, fileToBase64 } from './services/geminiService';
+import { getHistory, saveToHistory, deleteHistoryItem, clearAllHistory } from './services/historyService';
 import { Loader2, AlertCircle } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -13,6 +15,13 @@ const App: React.FC = () => {
     result: null,
     imagePreview: null,
   });
+
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+
+  // Load history on mount
+  useEffect(() => {
+    setHistory(getHistory());
+  }, []);
 
   // Cleanup object URLs to avoid memory leaks
   useEffect(() => {
@@ -38,6 +47,10 @@ const App: React.FC = () => {
       const base64 = await fileToBase64(file);
       const result = await analyzeProfile(base64, file.type);
       
+      // Save to history
+      const updatedHistory = saveToHistory(result);
+      setHistory(updatedHistory);
+
       setState(prev => ({
         ...prev,
         isLoading: false,
@@ -66,13 +79,42 @@ const App: React.FC = () => {
     });
   }, []);
 
+  const handleHistorySelect = (item: HistoryItem) => {
+    // When selecting history, we lose the image preview because we don't store it
+    // But we have the full text result
+    setState(prev => {
+      if (prev.imagePreview) URL.revokeObjectURL(prev.imagePreview);
+      return {
+        isLoading: false,
+        error: null,
+        result: item.result,
+        imagePreview: null // History items don't have images stored for privacy/storage reasons
+      };
+    });
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleHistoryDelete = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering the card click
+    const updated = deleteHistoryItem(id);
+    setHistory(updated);
+  };
+
+  const handleClearAllHistory = () => {
+    if (window.confirm("Are you sure you want to clear your entire history?")) {
+      clearAllHistory();
+      setHistory([]);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
 
       <main className="flex-grow flex flex-col items-center justify-start p-4 md:p-8 max-w-4xl mx-auto w-full">
         
-        {/* Intro Text */}
+        {/* Intro Text - Only show if no result is displayed */}
         {!state.result && !state.isLoading && (
           <div className="text-center mb-10 mt-6 max-w-xl">
             <h2 className="text-3xl font-extrabold text-gray-900 mb-3">
@@ -119,7 +161,16 @@ const App: React.FC = () => {
 
         {/* Initial Upload State */}
         {!state.result && !state.isLoading && (
-          <ImageUpload onImageSelect={handleImageSelect} isLoading={state.isLoading} />
+          <>
+            <ImageUpload onImageSelect={handleImageSelect} isLoading={state.isLoading} />
+            
+            <HistoryList 
+              history={history} 
+              onSelect={handleHistorySelect} 
+              onDelete={handleHistoryDelete}
+              onClearAll={handleClearAllHistory}
+            />
+          </>
         )}
 
         {/* Result State */}

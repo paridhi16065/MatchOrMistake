@@ -19,3 +19,9 @@ export interface AnalysisState {
   result: AnalysisResult | null;
   imagePreview: string | null;
 }
+
+export interface HistoryItem {
+  id: string;
+  timestamp: number;
+  result: AnalysisResult;
+}

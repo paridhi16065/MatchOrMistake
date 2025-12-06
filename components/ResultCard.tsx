@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, CheckCircle, HelpCircle, Flame, Snowflake, RefreshCw } from 'lucide-react';
+import { AlertTriangle, CheckCircle, HelpCircle, Flame, Snowflake, RefreshCw, ImageOff } from 'lucide-react';
 import { AnalysisResult, VerdictType } from '../types';
 
 interface ResultCardProps {
@@ -111,8 +111,8 @@ const ResultCard: React.FC<ResultCardProps> = ({ result, imagePreview, onReset }
       </div>
 
       {/* Image Preview Thumb */}
-      {imagePreview && (
-        <div className="flex justify-center">
+      <div className="flex justify-center">
+        {imagePreview ? (
             <div className="relative group">
                 <img 
                     src={imagePreview} 
@@ -120,8 +120,13 @@ const ResultCard: React.FC<ResultCardProps> = ({ result, imagePreview, onReset }
                     className="h-24 w-auto rounded-lg border border-gray-200 shadow-sm opacity-60 group-hover:opacity-100 transition-opacity"
                 />
             </div>
-        </div>
-      )}
+        ) : (
+            <div className="flex items-center gap-2 text-gray-400 text-xs bg-gray-100 px-3 py-2 rounded-lg border border-gray-200">
+                <ImageOff className="w-4 h-4" />
+                <span>Image not stored in history</span>
+            </div>
+        )}
+      </div>
 
       {/* Action Buttons */}
       <div className="flex justify-center pt-4">
